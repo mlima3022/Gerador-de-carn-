@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Carnê</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            padding: 20px;
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+            font-size: 2.2rem;
+            position: relative;
+            padding-bottom: 15px;
+        }
+        
+        h1:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            border-radius: 2px;
+        }
+        
+        .form-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .form-section h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .form-section h2 i {
+            margin-right: 10px;
+            color: #6a11cb;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+        }
+        
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        input[type="text"]:focus, input[type="number"]:focus {
+            border-color: #6a11cb;
+            box-shadow: 0 0 0 3px rgba(106, 17, 203, 0.1);
+            outline: none;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        .btn {
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: block;
+            margin: 30px auto;
+            box-shadow: 0 4px 15px rgba(106, 17, 203, 0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(106, 17, 203, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .preview {
+            margin-top: 40px;
+            border: 1px solid #ddd;
+            padding: 25px;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .preview h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            font-size: 1.6rem;
+        }
+
+        /* ===== Recibo em duas vias (layout da imagem) ===== */
+        .duas-vias {
+            position: relative;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            column-gap: 24px;
+            padding: 12px 10px;
+            background: #fff;
+            margin-bottom: 12px;
+        }
+
+        /* Linha pontilhada de corte ao centro */
+        .duas-vias::before {
+            content: "";
+            position: absolute;
+            top: 6px;
+            bottom: 6px;
+            left: 50%;
+            width: 0;
+            border-left: 2px dashed #bdbdbd;
+        }
+
+        .via {
+            border: 1px solid #cfcfcf;
+            border-radius: 4px;
+            padding: 14px 16px 10px 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 220px;
+        }
+
+        .via-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .via-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2c3e50;
+            line-height: 1.2;
+        }
+
+        .via-prof {
+            font-size: 11.5px;
+            color: #555;
+            text-align: right;
+            max-width: 55%;
+        }
+
+        .campo {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            align-items: end;
+            gap: 8px;
+            margin: 8px 0;
+            font-size: 13.5px;
+        }
+
+        .campo label {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .linha {
+            border-bottom: 2px solid #9e9e9e;
+            height: 18px;
+        }
+
+        .datas {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 8px 8px;
+            align-items: center;
+            margin-top: 4px;
+            font-size: 13.5px;
+        }
+
+        .data-blocos {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .data-bloco {
+            border-bottom: 2px solid #9e9e9e;
+            height: 18px;
+        }
+
+        .assinatura {
+            margin-top: 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .assinatura .risco {
+            width: 85%;
+            border-bottom: 2px solid #9e9e9e;
+            height: 22px;
+            margin-bottom: 6px;
+        }
+
+        .assinatura small {
+            color: #555;
+        }
+
+        /* texto sobre linhas */
+        .linha, .data-bloco { position: relative; }
+        .linha span, .data-bloco span {
+            position: absolute;
+            left: 4px;
+            bottom: 2px;
+            font-size: 12.5px;
+            color: #2b2b2b;
+        }
+
+        /* Página para 4 meses (2 linhas x 2 vias cada) */
+        .pagina {
+            background: #fff;
+            padding: 8px;
+            margin-bottom: 12px;
+        }
+
+        @media print {
+            .pagina { page-break-after: always; }
+        }
+        
+        .carne {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .carne th, .carne td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+        
+        .carne th {
+            background: linear-gradient(to bottom, #6a11cb, #2575fc);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .carne tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .header-info {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: linear-gradient(to right, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .header-info p {
+            margin: 8px 0;
+            font-size: 1.1rem;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .instructions {
+            background-color: #e8f4fd;
+            border-left: 4px solid #2575fc;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .instructions h3 {
+            color: #2575fc;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+        }
+        
+        @media print {
+            .no-print {
+                display: none;
+            }
+            
+            .preview {
+                border: none;
+                background-color: white;
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gerador de Carnê</h1>
+        
+        <div class="instructions">
+            <h3>Como usar:</h3>
+            <ul>
+                <li>Preencha os dados da pessoa e do clube</li>
+                <li>Defina o valor das parcelas e o dia de vencimento</li>
+                <li>Clique em "Gerar Carnê" para visualizar</li>
+                <li>Clique em "Baixar PDF" para salvar o carnê</li>
+            </ul>
+        </div>
+        
+        <div class="form-section">
+            <h2><i>📋</i> Dados Pessoais</h2>
+            <div class="form-group">
+                <label for="nome">Nome da Pessoa:</label>
+                <input type="text" id="nome" placeholder="Digite o nome completo">
+            </div>
+            
+            <div class="form-group">
+                <label for="clube">Clube:</label>
+                <input type="text" id="clube" placeholder="Digite o nome do clube">
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h2><i>💰</i> Configurações do Carnê</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="valor">Valor das Parcelas (R$):</label>
+                    <input type="number" id="valor" placeholder="Ex: 150.00" min="0" step="0.01" value="100.00">
+                </div>
+                
+                <div class="form-group">
+                    <label for="vencimento">Dia de Vencimento:</label>
+                    <input type="number" id="vencimento" placeholder="Dia do mês (1-31)" min="1" max="31" value="10">
+                </div>
+            </div>
+        </div>
+        
+        <button id="gerarBtn" class="btn">Gerar Carnê</button>
+        
+        <div id="preview" class="preview hidden">
+            <h2>Prévia do Carnê</h2>
+            <div id="carneContent">
+                <!-- O conteúdo do carnê será inserido aqui -->
+            </div>
+            <button id="baixarBtn" class="btn">Baixar PDF</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const gerarBtn = document.getElementById('gerarBtn');
+            const baixarBtn = document.getElementById('baixarBtn');
+            const preview = document.getElementById('preview');
+            const carneContent = document.getElementById('carneContent');
+            
+            // Meses do ano
+            const meses = [
+                'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+            ];
+            
+            // Gerar carnê
+            gerarBtn.addEventListener('click', function() {
+                const nome = document.getElementById('nome').value.trim();
+                const clube = document.getElementById('clube').value.trim();
+                const valor = parseFloat(document.getElementById('valor').value);
+                const diaVencimento = parseInt(document.getElementById('vencimento').value);
+                
+                // Validações
+                if (!nome || !clube) {
+                    alert('Por favor, preencha todos os campos!');
+                    return;
+                }
+                
+                if (isNaN(valor) || valor <= 0) {
+                    alert('Por favor, insira um valor válido para as parcelas!');
+                    return;
+                }
+                
+                if (isNaN(diaVencimento) || diaVencimento < 1 || diaVencimento > 31) {
+                    alert('Por favor, insira um dia de vencimento válido (1-31)!');
+                    return;
+                }
+                
+                // Formatar valor para moeda brasileira
+                const valorFormatado = valor.toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                });
+                
+                // Função que cria a marcação de UMA via
+                const criarVia = (nomePessoa, dd, mm, yyyy) => `
+                    <div class="via">
+                        <div>
+                            <div class="via-header">
+                                <div class="via-title">Controle de\nPagamento</div>
+                                <div class="via-prof">${clube ? clube : ''}</div>
+                            </div>
+                            <div class="campo"><label>Nome:</label><div class="linha"><span>${nomePessoa}</span></div></div>
+                            <div class="campo"><label>Valor R$</label><div class="linha"><span>${valorFormatado}</span></div></div>
+                            <div class="datas">
+                                <div>Data de Vencimento:</div>
+                                <div class="data-blocos">
+                                    <div class="data-bloco"><span>${dd}</span></div>
+                                    <div class="data-bloco"><span>${mm}</span></div>
+                                    <div class="data-bloco"><span>${yyyy}</span></div>
+                                </div>
+                                <div>Data do Pagamento:</div>
+                                <div class="data-blocos">
+                                    <div class="data-bloco"></div>
+                                    <div class="data-bloco"></div>
+                                    <div class="data-bloco"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="assinatura">
+                            <div class="risco"></div>
+                            <small>Assinatura</small>
+                        </div>
+                    </div>`;
+
+                // Criar conteúdo: 12 meses, 4 meses por página (cada mês = duas vias)
+                let html = '';
+                meses.forEach((mes, index) => {
+                    let diaAjustado = diaVencimento;
+                    if ((mes === 'Fevereiro' && diaVencimento > 28) ||
+                        (['Abril', 'Junho', 'Setembro', 'Novembro'].includes(mes) && diaVencimento > 30)) {
+                        diaAjustado = mes === 'Fevereiro' ? 28 : 30;
+                    }
+
+                    const dd = diaAjustado.toString().padStart(2, '0');
+                    const mm = (index + 1).toString().padStart(2, '0');
+                    const yyyy = new Date().getFullYear();
+                    // Abre uma nova página a cada 4 meses
+                    if (index % 4 === 0) {
+                        if (index > 0) html += `</div>`; // fecha a página anterior
+                        html += `<div class="pagina">`;
+                    }
+
+                    html += `<div class=\"duas-vias\">${criarVia(nome, dd, mm, yyyy)}${criarVia(nome, dd, mm, yyyy)}</div>`;
+                    
+                    // fecha a última página ao final
+                    if (index === meses.length - 1) {
+                        html += `</div>`;
+                    }
+                });
+                
+                carneContent.innerHTML = html;
+                preview.classList.remove('hidden');
+                
+                // Rolagem suave até a prévia
+                preview.scrollIntoView({ behavior: 'smooth' });
+            });
+            
+            // Baixar PDF
+            baixarBtn.addEventListener('click', function() {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                
+                const paginas = Array.from(carneContent.querySelectorAll('.pagina'));
+                
+                const renderPagina = (idx) => {
+                    if (idx >= paginas.length) {
+                        const nome = document.getElementById('nome').value.trim();
+                        doc.save(`carne_${nome.replace(/\s+/g, '_')}.pdf`);
+                        return;
+                    }
+                    const el = paginas[idx];
+                    html2canvas(el, { scale: 2, useCORS: true, logging: false }).then(canvas => {
+                        const imgData = canvas.toDataURL('image/png');
+                        const imgWidth = doc.internal.pageSize.getWidth();
+                        const imgHeight = canvas.height * imgWidth / canvas.width;
+                        if (idx > 0) doc.addPage();
+                        doc.addImage(imgData, 'PNG', 5, 5, imgWidth - 10, imgHeight);
+                        renderPagina(idx + 1);
+                    });
+                };
+                
+                renderPagina(0);
+            });
+        });
+    </script>
+</body>
+</html>
