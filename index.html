@@ -278,6 +278,14 @@
             .pagina { page-break-after: always; }
         }
         
+        /* Container offscreen com largura fixa A4 para captura consistente no mobile */
+        .pdf-capture {
+            width: 794px; /* ~A4 em px @96dpi */
+            background: #fff;
+            padding: 8px;
+        }
+        .pdf-capture .pagina { page-break-inside: avoid; }
+        
         .carne {
             width: 100%;
             border-collapse: collapse;
@@ -528,16 +536,25 @@
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF('p', 'mm', 'a4');
                 
-                const paginas = Array.from(carneContent.querySelectorAll('.pagina'));
-                
+                // Clona o conteúdo para um contêiner offscreen com largura fixa de A4
+                const clone = carneContent.cloneNode(true);
+                clone.classList.add('pdf-capture');
+                clone.style.position = 'fixed';
+                clone.style.left = '-9999px';
+                clone.style.top = '0';
+                document.body.appendChild(clone);
+
+                const paginas = Array.from(clone.querySelectorAll('.pagina'));
+
                 const renderPagina = (idx) => {
                     if (idx >= paginas.length) {
+                        document.body.removeChild(clone);
                         const nome = document.getElementById('nome').value.trim();
                         doc.save(`carne_${nome.replace(/\s+/g, '_')}.pdf`);
                         return;
                     }
                     const el = paginas[idx];
-                    html2canvas(el, { scale: 2, useCORS: true, logging: false }).then(canvas => {
+                    html2canvas(el, { scale: 2, useCORS: true, logging: false, windowWidth: 794 }).then(canvas => {
                         const imgData = canvas.toDataURL('image/png');
                         const imgWidth = doc.internal.pageSize.getWidth();
                         const imgHeight = canvas.height * imgWidth / canvas.width;
